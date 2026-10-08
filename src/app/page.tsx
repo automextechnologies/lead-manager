@@ -1,69 +1,287 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useState, useMemo } from "react";
+import { PhoneFrame } from "@/components/PhoneFrame";
+import { AppHeader } from "@/components/AppHeader";
+import { Toolbar } from "@/components/Toolbar";
+import { StatusChips } from "@/components/StatusChips";
+import { LeadCard } from "@/components/LeadCard";
+import { LeadFormSheet } from "@/components/LeadFormSheet";
+import { QuickStatusMenu } from "@/components/QuickStatusMenu";
+import { FilterSheet } from "@/components/FilterSheet";
+import { BottomNav } from "@/components/BottomNav";
+import {
+  useLeads,
+  useCreateLead,
+  useUpdateLead,
+  useQuickUpdateStatus,
+  useDeleteLead,
+} from "@/hooks/useLeads";
+import { Lead, LeadStatus, FilterOptions } from "@/lib/types";
+import { extractDigits } from "@/lib/phone";
+import { AlertCircle, Inbox } from "lucide-react";
+
+export default function LeadsPage() {
+  const { data: leads = [], isLoading, isError, error, refetch, isFetching } = useLeads();
+
+  const createMutation = useCreateLead();
+  const updateMutation = useUpdateLead();
+  const quickStatusMutation = useQuickUpdateStatus();
+  const deleteMutation = useDeleteLead();
+
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<LeadStatus | "all">("all");
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [filters, setFilters] = useState<FilterOptions>({
+    search: "",
+    status: "all",
+    assigned: "all",
+    hasFollowUpOnly: false,
+    sortBy: "date-desc",
+  });
+
+  // Modal Sheet State
+  const [formSheetOpen, setFormSheetOpen] = useState(false);
+  const [leadToEdit, setLeadToEdit] = useState<Lead | null>(null);
+
+  // Quick Status Menu State
+  const [quickStatusLead, setQuickStatusLead] = useState<Lead | null>(null);
+
+  // Get unique assignees for filter
+  const uniqueAssignees = useMemo(() => {
+    const set = new Set<string>();
+    leads.forEach((l) => {
+      if (l.assigned) set.add(l.assigned);
+    });
+    return Array.from(set);
+  }, [leads]);
+
+  // Filter and Sort leads
+  const filteredLeads = useMemo(() => {
+    return leads.filter((lead) => {
+      // Status pill filter
+      if (selectedStatus !== "all" && lead.status !== selectedStatus) {
+        return false;
+      }
+
+      // Filter sheet: Assignee
+      if (filters.assigned !== "all" && lead.assigned !== filters.assigned) {
+        return false;
+      }
+
+      // Filter sheet: Has follow up only
+      if (filters.hasFollowUpOnly && !lead.nextFollowUp) {
+        return false;
+      }
+
+      // Search query (matches name or phone digits)
+      if (searchQuery.trim()) {
+        const query = searchQuery.trim().toLowerCase();
+        const queryDigits = extractDigits(query);
+        const nameMatch = lead.name.toLowerCase().includes(query);
+        const phoneMatch =
+          lead.phone.toLowerCase().includes(query) ||
+          (queryDigits.length > 0 && extractDigits(lead.phone).includes(queryDigits));
+        const notesMatch = (lead.notes || "").toLowerCase().includes(query);
+
+        if (!nameMatch && !phoneMatch && !notesMatch) {
+          return false;
+        }
+      }
+
+      return true;
+    }).sort((a, b) => {
+      if (filters.sortBy === "date-desc") {
+        return (b.leadDate || "").localeCompare(a.leadDate || "");
+      }
+      if (filters.sortBy === "date-asc") {
+        return (a.leadDate || "").localeCompare(b.leadDate || "");
+      }
+      if (filters.sortBy === "followup-asc") {
+        if (!a.nextFollowUp) return 1;
+        if (!b.nextFollowUp) return -1;
+        return a.nextFollowUp.localeCompare(b.nextFollowUp);
+      }
+      if (filters.sortBy === "name-asc") {
+        return (a.name || a.phone).localeCompare(b.name || b.phone);
+      }
+      return 0;
+    });
+  }, [leads, selectedStatus, filters, searchQuery]);
+
+  const hasActiveFilters =
+    filters.assigned !== "all" ||
+    filters.hasFollowUpOnly ||
+    filters.sortBy !== "date-desc";
+
+  const handleOpenAdd = () => {
+    setLeadToEdit(null);
+    setFormSheetOpen(true);
+  };
+
+  const handleEdit = (lead: Lead) => {
+    setLeadToEdit(lead);
+    setFormSheetOpen(true);
+  };
+
+  const handleStatusClick = (lead: Lead) => {
+    setQuickStatusLead(lead);
+  };
+
+  const handleFormSubmit = async (leadData: Partial<Lead>, originalPhone?: string) => {
+    if (originalPhone) {
+      await updateMutation.mutateAsync({
+        phone: originalPhone,
+        updatedFields: leadData,
+      });
+    } else {
+      await createMutation.mutateAsync(leadData);
+    }
+  };
+
+  const handleDelete = async (phone: string) => {
+    await deleteMutation.mutateAsync(phone);
+  };
+
+  const handleQuickStatusChange = (lead: Lead, newStatus: LeadStatus) => {
+    quickStatusMutation.mutate({
+      phone: lead.phone,
+      newStatus,
+    });
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <PhoneFrame>
+      {/* 1. HEADER */}
+      <AppHeader
+        title="Leads"
+        subtitle="Manage and follow up with your leads"
+        leads={leads}
+        isLoading={isFetching}
+        onRefresh={() => refetch()}
+        onOpenAdd={handleOpenAdd}
+        showSummary={true}
+      />
+
+      {/* 2. SEARCH & FILTER TOOLBAR */}
+      <Toolbar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onOpenFilter={() => setFilterSheetOpen(true)}
+        hasActiveFilters={hasActiveFilters}
+      />
+
+      {/* 3. STATUS PILL CHIPS */}
+      <StatusChips
+        selectedStatus={selectedStatus}
+        onSelectStatus={setSelectedStatus}
+        leads={leads}
+      />
+
+      {/* 4. MAIN LEADS LIST */}
+      <main className="flex-1 overflow-y-auto px-[12px] pt-[7px] pb-[85px] smooth-scroll">
+        {isLoading && leads.length === 0 ? (
+          <div className="space-y-3 pt-2">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="p-4 bg-white border border-[#e5e7ec] rounded-[17px] animate-pulse space-y-3"
+              >
+                <div className="flex justify-between items-center">
+                  <div className="h-4 bg-gray-200 rounded-sm w-1/3" />
+                  <div className="h-5 bg-gray-200 rounded-full w-20" />
+                </div>
+                <div className="h-3 bg-gray-100 rounded-sm w-1/2" />
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100">
+                  <div className="h-3 bg-gray-100 rounded-sm w-3/4" />
+                  <div className="h-3 bg-gray-100 rounded-sm w-3/4" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : isError ? (
+          <div className="p-6 text-center my-8 bg-red-50/70 border border-red-200 rounded-[20px] mx-2">
+            <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
+            <h3 className="text-[14px] font-bold text-red-800">Unable to load leads</h3>
+            <p className="text-[12px] text-red-600 mt-1 max-w-xs mx-auto">
+              {(error as any)?.message || "Check your internet connection or API deployment"}
+            </p>
+            <button
+              onClick={() => refetch()}
+              className="mt-3 px-4 py-1.5 bg-red-600 text-white rounded-full text-[12px] font-bold shadow-xs transition active:scale-95"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+              Retry
+            </button>
+          </div>
+        ) : filteredLeads.length === 0 ? (
+          <div className="text-center py-16 px-4">
+            <Inbox className="w-10 h-10 text-[#9aa2af] mx-auto mb-2 stroke-[1.5]" />
+            <p className="text-[14px] font-[650] text-[#4b5565]">No leads found</p>
+            <p className="text-[11px] text-[#828c9b] mt-1">
+              {searchQuery || selectedStatus !== "all" || hasActiveFilters
+                ? "Try clearing filters or search query"
+                : "Tap + in the header to add your first lead"}
+            </p>
+            {(searchQuery || selectedStatus !== "all" || hasActiveFilters) && (
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  setSelectedStatus("all");
+                  setFilters({
+                    search: "",
+                    status: "all",
+                    assigned: "all",
+                    hasFollowUpOnly: false,
+                    sortBy: "date-desc",
+                  });
+                }}
+                className="mt-3 text-[12px] text-blue-600 font-semibold hover:underline"
+              >
+                Clear all filters
+              </button>
+            )}
+          </div>
+        ) : (
+          <div>
+            {filteredLeads.map((lead) => (
+              <LeadCard
+                key={lead.phone}
+                lead={lead}
+                onEdit={handleEdit}
+                onStatusClick={handleStatusClick}
+              />
+            ))}
+          </div>
+        )}
       </main>
-    </div>
+
+      {/* 5. BOTTOM NAVIGATION */}
+      <BottomNav />
+
+      {/* 6. MODALS / DRAWERS */}
+      <LeadFormSheet
+        isOpen={formSheetOpen}
+        onClose={() => setFormSheetOpen(false)}
+        leadToEdit={leadToEdit}
+        onSubmit={handleFormSubmit}
+        onDelete={handleDelete}
+      />
+
+      <QuickStatusMenu
+        isOpen={Boolean(quickStatusLead)}
+        lead={quickStatusLead}
+        onClose={() => setQuickStatusLead(null)}
+        onSelectStatus={handleQuickStatusChange}
+      />
+
+      <FilterSheet
+        isOpen={filterSheetOpen}
+        onClose={() => setFilterSheetOpen(false)}
+        filters={filters}
+        onFiltersChange={setFilters}
+        assignees={uniqueAssignees}
+      />
+    </PhoneFrame>
   );
 }
