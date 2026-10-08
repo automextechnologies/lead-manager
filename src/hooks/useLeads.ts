@@ -28,7 +28,7 @@ export function useCreateLead() {
           phoneNum: newLead.phone,
           name: newLead.name || "",
           age: newLead.age,
-          assigned: newLead.assigned || "abdu",
+          assigned: newLead.assigned || "",
           status: newLead.status || "new lead",
           nextFollowUp: newLead.nextFollowUp,
           notes: newLead.notes,

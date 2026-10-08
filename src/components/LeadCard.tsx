@@ -79,7 +79,13 @@ export function LeadCard({ lead, onEdit, onStatusClick }: LeadCardProps) {
 
           <div className="mt-[3px] text-[#7d8593] text-[11px]">
             {lead.age ? `${lead.age} years · ` : ""}
-            Assigned to <b className="text-[#3b4352]">{lead.assigned || "Unassigned"}</b>
+            {lead.assigned ? (
+              <>
+                Assigned to <b className="text-[#3b4352]">{lead.assigned}</b>
+              </>
+            ) : (
+              <span className="text-[#8c94a2] font-medium">Unassigned</span>
+            )}
           </div>
         </div>
 

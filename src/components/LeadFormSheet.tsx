@@ -30,7 +30,7 @@ export function LeadFormSheet({
   const [phone, setPhone] = useState("");
   const [age, setAge] = useState("");
   const [status, setStatus] = useState<LeadStatus>("new lead");
-  const [assigned, setAssigned] = useState("abdu");
+  const [assigned, setAssigned] = useState("");
   const [customAssigned, setCustomAssigned] = useState("");
   const [leadDate, setLeadDate] = useState("");
   const [nextFollowUp, setNextFollowUp] = useState("");
@@ -44,7 +44,10 @@ export function LeadFormSheet({
       setPhone(leadToEdit.phone || "");
       setAge(leadToEdit.age || "");
       setStatus(leadToEdit.status || "new lead");
-      if (DEFAULT_ASSIGNEES.includes(leadToEdit.assigned)) {
+      if (!leadToEdit.assigned) {
+        setAssigned("");
+        setCustomAssigned("");
+      } else if (DEFAULT_ASSIGNEES.includes(leadToEdit.assigned)) {
         setAssigned(leadToEdit.assigned);
         setCustomAssigned("");
       } else {
@@ -55,12 +58,12 @@ export function LeadFormSheet({
       setNextFollowUp(leadToEdit.nextFollowUp || "");
       setNotes(leadToEdit.notes || "");
     } else {
-      // Defaults for new lead
+      // Defaults for new lead (no assigned user requirement)
       setName("");
       setPhone("");
       setAge("");
       setStatus("new lead");
-      setAssigned("abdu");
+      setAssigned("");
       setCustomAssigned("");
       setLeadDate(new Date().toISOString().split("T")[0]);
       setNextFollowUp("");
@@ -95,7 +98,7 @@ export function LeadFormSheet({
           phoneNum: phone.trim(),
           age: age.trim() || undefined,
           status,
-          assigned: finalAssigned || "abdu",
+          assigned: finalAssigned || "",
           leadDate: leadDate || new Date().toISOString().split("T")[0],
           nextFollowUp: nextFollowUp || undefined,
           notes: notes.trim() || undefined,
@@ -221,7 +224,7 @@ export function LeadFormSheet({
           {/* Assigned Field */}
           <div>
             <label className="block text-[11px] font-[650] text-[#3b4352] uppercase tracking-wider mb-1.5">
-              Assigned To
+              Assigned To <span className="text-[#8e97a5] font-normal lowercase">(optional)</span>
             </label>
             <div className="flex gap-2">
               <select
@@ -229,6 +232,7 @@ export function LeadFormSheet({
                 onChange={(e) => setAssigned(e.target.value)}
                 className="flex-1 px-3 py-2.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-[12px] text-[13px] font-medium text-[#172033] focus:bg-white focus:border-blue-500 outline-none transition cursor-pointer"
               >
+                <option value="">Unassigned (None)</option>
                 {DEFAULT_ASSIGNEES.map((a) => (
                   <option key={a} value={a}>
                     {a}
@@ -241,8 +245,7 @@ export function LeadFormSheet({
                   type="text"
                   value={customAssigned}
                   onChange={(e) => setCustomAssigned(e.target.value)}
-                  placeholder="Enter name"
-                  required
+                  placeholder="Enter name (optional)"
                   className="flex-1 px-3 py-2.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-[12px] text-[13px] text-[#172033] focus:bg-white focus:border-blue-500 outline-none transition"
                 />
               )}
