@@ -4,8 +4,8 @@ import React, { useState, useMemo } from "react";
 import { PhoneFrame } from "@/components/PhoneFrame";
 import { AppHeader } from "@/components/AppHeader";
 import { Toolbar } from "@/components/Toolbar";
-import { StatusChips } from "@/components/StatusChips";
 import { LeadCard } from "@/components/LeadCard";
+import { STATUS_CONFIG } from "@/lib/statuses";
 import { LeadFormSheet } from "@/components/LeadFormSheet";
 import { QuickStatusMenu } from "@/components/QuickStatusMenu";
 import { FilterSheet } from "@/components/FilterSheet";
@@ -178,12 +178,48 @@ export default function LeadsPage() {
         hasActiveFilters={hasActiveFilters}
       />
 
-      {/* 3. STATUS PILL CHIPS */}
-      <StatusChips
-        selectedStatus={selectedStatus}
-        onSelectStatus={setSelectedStatus}
-        leads={leads}
-      />
+      {/* 3. CURRENT STATUS LABEL */}
+      <div className="flex items-center justify-between px-[15px] py-2 bg-[#f7f8fa] border-b border-[#eceef2] shrink-0">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-[#7a8291] font-medium">Status:</span>
+          {selectedStatus === "all" ? (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-[700] bg-[#172033] text-white shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-white" />
+              All Leads
+              <span className="text-[9.5px] font-bold opacity-80">({leads.length})</span>
+            </span>
+          ) : (
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-[700] border ${STATUS_CONFIG[selectedStatus].badgeBg} ${STATUS_CONFIG[selectedStatus].badgeText} ${STATUS_CONFIG[selectedStatus].border} shadow-2xs`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${STATUS_CONFIG[selectedStatus].indicator}`}
+              />
+              {STATUS_CONFIG[selectedStatus].label}
+              <span className="text-[9.5px] font-bold opacity-80">
+                ({filteredLeads.length})
+              </span>
+            </span>
+          )}
+        </div>
+
+        {selectedStatus !== "all" ? (
+          <button
+            onClick={() => setSelectedStatus("all")}
+            className="text-[11px] text-[#5e6675] hover:text-[#172033] font-semibold hover:underline cursor-pointer flex items-center gap-1"
+          >
+            <span>Show All</span>
+            <span className="text-[12px]">✕</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold hover:underline cursor-pointer"
+          >
+            Filter in Menu
+          </button>
+        )}
+      </div>
 
       {/* 4. MAIN LEADS LIST (Full height without bottom bar) */}
       <main className="flex-1 overflow-y-auto px-[12px] pt-[7px] pb-6 pb-safe smooth-scroll">
