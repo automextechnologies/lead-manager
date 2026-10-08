@@ -6,7 +6,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { LeadCard } from "@/components/LeadCard";
 import { LeadFormSheet } from "@/components/LeadFormSheet";
 import { QuickStatusMenu } from "@/components/QuickStatusMenu";
-import { BottomNav } from "@/components/BottomNav";
+import { Sidebar } from "@/components/Sidebar";
 import {
   useLeads,
   useCreateLead,
@@ -25,6 +25,7 @@ export default function ClosedLeadsPage() {
   const quickStatusMutation = useQuickUpdateStatus();
   const deleteMutation = useDeleteLead();
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [formSheetOpen, setFormSheetOpen] = useState(false);
   const [leadToEdit, setLeadToEdit] = useState<Lead | null>(null);
   const [quickStatusLead, setQuickStatusLead] = useState<Lead | null>(null);
@@ -55,6 +56,7 @@ export default function ClosedLeadsPage() {
           setLeadToEdit(null);
           setFormSheetOpen(true);
         }}
+        onOpenSidebar={() => setSidebarOpen(true)}
         showSummary={false}
       />
 
@@ -94,7 +96,7 @@ export default function ClosedLeadsPage() {
       </div>
 
       {/* LIST */}
-      <main className="flex-1 overflow-y-auto px-[12px] pt-[7px] pb-[85px] smooth-scroll">
+      <main className="flex-1 overflow-y-auto px-[12px] pt-[7px] pb-6 pb-safe smooth-scroll">
         {isLoading && leads.length === 0 ? (
           <div className="p-4 text-center text-[#7d8593] text-xs">Loading closed leads...</div>
         ) : displayedLeads.length === 0 ? (
@@ -118,7 +120,12 @@ export default function ClosedLeadsPage() {
         )}
       </main>
 
-      <BottomNav />
+      {/* SIDEBAR DRAWER */}
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        leads={leads}
+      />
 
       <LeadFormSheet
         isOpen={formSheetOpen}

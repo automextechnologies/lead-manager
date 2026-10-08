@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { PhoneFrame } from "@/components/PhoneFrame";
-import { BottomNav } from "@/components/BottomNav";
+import { Sidebar } from "@/components/Sidebar";
 import { useLeads } from "@/hooks/useLeads";
 import { useQueryClient } from "@tanstack/react-query";
 import { LEADS_QUERY_KEY } from "@/hooks/useLeads";
@@ -12,15 +12,16 @@ import {
   Activity,
   Trash2,
   Download,
-  ExternalLink,
   CheckCircle,
   Database,
+  Menu,
 } from "lucide-react";
 
 export default function SettingsPage() {
   const { data: leads = [], refetch } = useLeads();
   const queryClient = useQueryClient();
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [assignedName, setAssignedName] = useState("abdu");
   const [isTestingApi, setIsTestingApi] = useState(false);
   const [apiPingStatus, setApiPingStatus] = useState<string | null>(null);
@@ -65,16 +66,28 @@ export default function SettingsPage() {
 
   return (
     <PhoneFrame>
-      <header className="bg-white px-[18px] pt-[38px] sm:pt-[44px] pb-[15px] border-b border-[#e7e9ee] shrink-0">
-        <h1 className="text-[22px] font-[750] tracking-[-0.5px] text-[#172033]">
-          Settings
-        </h1>
-        <p className="text-[12px] text-[#7a8291] mt-[3px]">
-          Preferences &amp; System Info
-        </p>
+      <header className="bg-white px-[16px] pt-[36px] sm:pt-[42px] pb-[15px] border-b border-[#e7e9ee] shrink-0 select-none">
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open menu drawer"
+            className="w-[38px] h-[38px] grid place-items-center bg-[#f7f8fa] hover:bg-[#edf0f4] active:scale-90 border border-[#e1e4ea] rounded-[12px] text-[#172033] shadow-2xs transition cursor-pointer shrink-0"
+          >
+            <Menu className="w-5 h-5 stroke-[2.2]" />
+          </button>
+
+          <div>
+            <h1 className="text-[20px] sm:text-[22px] font-[750] tracking-[-0.5px] text-[#172033] leading-tight">
+              Settings
+            </h1>
+            <p className="text-[11.5px] text-[#7a8291] mt-[2px] font-normal">
+              Preferences &amp; System Info
+            </p>
+          </div>
+        </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-[85px] smooth-scroll">
+      <main className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-6 pb-safe smooth-scroll">
         {/* PROFILE / ASSIGNEE */}
         <div className="bg-white p-4 rounded-[18px] border border-[#e5e7ec] shadow-2xs space-y-3">
           <div className="flex items-center gap-2">
@@ -193,7 +206,11 @@ export default function SettingsPage() {
         </div>
       </main>
 
-      <BottomNav />
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        leads={leads}
+      />
     </PhoneFrame>
   );
 }

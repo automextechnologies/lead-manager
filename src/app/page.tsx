@@ -9,7 +9,7 @@ import { LeadCard } from "@/components/LeadCard";
 import { LeadFormSheet } from "@/components/LeadFormSheet";
 import { QuickStatusMenu } from "@/components/QuickStatusMenu";
 import { FilterSheet } from "@/components/FilterSheet";
-import { BottomNav } from "@/components/BottomNav";
+import { Sidebar } from "@/components/Sidebar";
 import {
   useLeads,
   useCreateLead,
@@ -28,6 +28,9 @@ export default function LeadsPage() {
   const updateMutation = useUpdateLead();
   const quickStatusMutation = useQuickUpdateStatus();
   const deleteMutation = useDeleteLead();
+
+  // Sidebar Drawer State
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,55 +62,57 @@ export default function LeadsPage() {
 
   // Filter and Sort leads
   const filteredLeads = useMemo(() => {
-    return leads.filter((lead) => {
-      // Status pill filter
-      if (selectedStatus !== "all" && lead.status !== selectedStatus) {
-        return false;
-      }
-
-      // Filter sheet: Assignee
-      if (filters.assigned !== "all" && lead.assigned !== filters.assigned) {
-        return false;
-      }
-
-      // Filter sheet: Has follow up only
-      if (filters.hasFollowUpOnly && !lead.nextFollowUp) {
-        return false;
-      }
-
-      // Search query (matches name or phone digits)
-      if (searchQuery.trim()) {
-        const query = searchQuery.trim().toLowerCase();
-        const queryDigits = extractDigits(query);
-        const nameMatch = lead.name.toLowerCase().includes(query);
-        const phoneMatch =
-          lead.phone.toLowerCase().includes(query) ||
-          (queryDigits.length > 0 && extractDigits(lead.phone).includes(queryDigits));
-        const notesMatch = (lead.notes || "").toLowerCase().includes(query);
-
-        if (!nameMatch && !phoneMatch && !notesMatch) {
+    return leads
+      .filter((lead) => {
+        // Status pill / sidebar selection filter
+        if (selectedStatus !== "all" && lead.status !== selectedStatus) {
           return false;
         }
-      }
 
-      return true;
-    }).sort((a, b) => {
-      if (filters.sortBy === "date-desc") {
-        return (b.leadDate || "").localeCompare(a.leadDate || "");
-      }
-      if (filters.sortBy === "date-asc") {
-        return (a.leadDate || "").localeCompare(b.leadDate || "");
-      }
-      if (filters.sortBy === "followup-asc") {
-        if (!a.nextFollowUp) return 1;
-        if (!b.nextFollowUp) return -1;
-        return a.nextFollowUp.localeCompare(b.nextFollowUp);
-      }
-      if (filters.sortBy === "name-asc") {
-        return (a.name || a.phone).localeCompare(b.name || b.phone);
-      }
-      return 0;
-    });
+        // Filter sheet: Assignee
+        if (filters.assigned !== "all" && lead.assigned !== filters.assigned) {
+          return false;
+        }
+
+        // Filter sheet: Has follow up only
+        if (filters.hasFollowUpOnly && !lead.nextFollowUp) {
+          return false;
+        }
+
+        // Search query (matches name or phone digits or notes)
+        if (searchQuery.trim()) {
+          const query = searchQuery.trim().toLowerCase();
+          const queryDigits = extractDigits(query);
+          const nameMatch = lead.name.toLowerCase().includes(query);
+          const phoneMatch =
+            lead.phone.toLowerCase().includes(query) ||
+            (queryDigits.length > 0 && extractDigits(lead.phone).includes(queryDigits));
+          const notesMatch = (lead.notes || "").toLowerCase().includes(query);
+
+          if (!nameMatch && !phoneMatch && !notesMatch) {
+            return false;
+          }
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        if (filters.sortBy === "date-desc") {
+          return (b.leadDate || "").localeCompare(a.leadDate || "");
+        }
+        if (filters.sortBy === "date-asc") {
+          return (a.leadDate || "").localeCompare(b.leadDate || "");
+        }
+        if (filters.sortBy === "followup-asc") {
+          if (!a.nextFollowUp) return 1;
+          if (!b.nextFollowUp) return -1;
+          return a.nextFollowUp.localeCompare(b.nextFollowUp);
+        }
+        if (filters.sortBy === "name-asc") {
+          return (a.name || a.phone).localeCompare(b.name || b.phone);
+        }
+        return 0;
+      });
   }, [leads, selectedStatus, filters, searchQuery]);
 
   const hasActiveFilters =
@@ -153,7 +158,7 @@ export default function LeadsPage() {
 
   return (
     <PhoneFrame>
-      {/* 1. HEADER */}
+      {/* 1. HEADER WITH HAMBURGER MENU */}
       <AppHeader
         title="Leads"
         subtitle="Manage and follow up with your leads"
@@ -161,6 +166,7 @@ export default function LeadsPage() {
         isLoading={isFetching}
         onRefresh={() => refetch()}
         onOpenAdd={handleOpenAdd}
+        onOpenSidebar={() => setSidebarOpen(true)}
         showSummary={true}
       />
 
@@ -179,8 +185,8 @@ export default function LeadsPage() {
         leads={leads}
       />
 
-      {/* 4. MAIN LEADS LIST */}
-      <main className="flex-1 overflow-y-auto px-[12px] pt-[7px] pb-[85px] smooth-scroll">
+      {/* 4. MAIN LEADS LIST (Full height without bottom bar) */}
+      <main className="flex-1 overflow-y-auto px-[12px] pt-[7px] pb-6 pb-safe smooth-scroll">
         {isLoading && leads.length === 0 ? (
           <div className="space-y-3 pt-2">
             {[1, 2, 3].map((i) => (
@@ -256,8 +262,14 @@ export default function LeadsPage() {
         )}
       </main>
 
-      {/* 5. BOTTOM NAVIGATION */}
-      <BottomNav />
+      {/* 5. EXPANDABLE SIDEBAR DRAWER */}
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        leads={leads}
+        selectedStatus={selectedStatus}
+        onSelectStatus={setSelectedStatus}
+      />
 
       {/* 6. MODALS / DRAWERS */}
       <LeadFormSheet
